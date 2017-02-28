@@ -1,0 +1,6 @@
+.idea/*
+project/*
+target/*
+res/*
+lib/*
+!lib/github-api-wrapper*
