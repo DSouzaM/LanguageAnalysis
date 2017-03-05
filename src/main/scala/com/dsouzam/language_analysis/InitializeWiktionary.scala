@@ -3,7 +3,7 @@ package com.dsouzam.language_analysis
 import java.io.File
 import de.tudarmstadt.ukp.jwktl.JWKTL
 
-object Initialize {
+object InitializeWiktionary {
   // Before running, place decompressed xml file in res/.
   // This function will parse the Wiktionary dump into an Oracle Berkeley DB so it can be more easily queried by JWKTL.
   // This process can take a while, even up to 2 hours (https://dkpro.github.io/dkpro-jwktl/documentation/getting-started/).
