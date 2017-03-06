@@ -34,9 +34,11 @@ object Tokenizer {
     Token(word, entries)
   }
 
-  def tokenize(string: String): Seq[Token] = {
+  def tokenize(string: String): IndexedSeq[Token] = {
     split(string.toLowerCase)
       .map(trim)
+      .filter(_.nonEmpty)
       .map(getToken)
+      .toIndexedSeq
   }
 }
