@@ -6,10 +6,13 @@ import java.io.File
 import de.tudarmstadt.ukp.jwktl.JWKTL
 import de.tudarmstadt.ukp.jwktl.api.{IWiktionaryEntry, PartOfSpeech}
 
+import scala.collection.mutable
+
 case class Token(word: String, partsOfSpeech: Set[PartOfSpeech])
 
 object Tokenizer {
   val dict = JWKTL.openEdition(new File("res/wiktionary"))
+  val cachedResults = mutable.Map[String, Set[PartOfSpeech]]()
 
   private def isLanguage(lang: String)(entry: IWiktionaryEntry): Boolean = entry.getWordLanguage.getCode == lang
 
@@ -24,12 +27,13 @@ object Tokenizer {
 
   def getToken(word: String): Token = {
     assert(whitespace.findFirstIn(word).isEmpty, "Word cannot contain whitespace.")
-    val entries = dict.getEntriesForWord(word)
+    val entries = cachedResults.getOrElseUpdate(word,dict.getEntriesForWord(word)
       .toList
       .filter(isLanguage("eng"))
       .take(RELEVANT_ENTRIES)
       .map(_.getPartOfSpeech)
       .toSet
+    )
 
     Token(word, entries)
   }
