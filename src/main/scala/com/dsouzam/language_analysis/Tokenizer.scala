@@ -14,7 +14,9 @@ object Tokenizer {
   val dict = JWKTL.openEdition(new File("res/wiktionary"))
   val cachedResults = mutable.Map[String, Set[PartOfSpeech]]()
 
-  private def isLanguage(lang: String)(entry: IWiktionaryEntry): Boolean = entry.getWordLanguage.getCode == lang
+  private def isLanguage(lang: String)(entry: IWiktionaryEntry): Boolean = {
+    if (entry.getWordLanguage == null) false else entry.getWordLanguage.getCode == lang
+  }
 
   private val whitespace = "\\s".r
   private val trimmer = "(^\\W*|\\W*$)".r // non-alphanumeric characters at word boundaries
