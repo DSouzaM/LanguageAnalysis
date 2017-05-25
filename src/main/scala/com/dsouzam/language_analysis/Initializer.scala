@@ -1,6 +1,6 @@
 package com.dsouzam.language_analysis
 
-import com.dsouzam.language_analysis.tables.Repositories
+import com.dsouzam.language_analysis.tables._
 import java.io.File
 
 import de.tudarmstadt.ukp.jwktl.JWKTL
@@ -47,13 +47,15 @@ object Initializer {
   def initializeDatabase = {
     val db = Database.forConfig("main")
     val repositories = TableQuery[Repositories]
+    val languages = TableQuery[Languages]
+    val repositoryLanguages = TableQuery[RepositoryLanguages]
 
-    val tables = Seq(repositories)
+    val tables = Seq(repositories, languages, repositoryLanguages)
     val existing = Await.result(db.run(MTable.getTables(Some(DATABASE_NAME), None, None, None)), Duration.Inf)
 
     val setup = DBIO.sequence(
       sqlu"CREATE DATABASE IF NOT EXISTS #$DATABASE_NAME" +:
-      tables.filterNot(tbl => existing.exists(_.name.name == tbl.baseTableRow.tableName))
+      tables.filterNot(tbl => existing.exists(_.name.name == tbl.baseTableRow.tableName.toLowerCase))
           .map(_.schema.create)
     )
     print("Initializing database... ")
