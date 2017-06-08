@@ -11,14 +11,12 @@ class StemTokenizer(object):
   def __init__(self):
     self.stemmer = PorterStemmer()
   def __call__(self, string):
-    return [self.stemmer.stem(token) for token in word_tokenize(string) if is_alpha(token)]
+    return [self.stemmer.stem(token) for token in word_tokenize(string) if is_alpha(token) and len(token) > 3]
     
 
 class AlphaTokenizer(object):
-  def __init__(self):
-    self.stemmer = PorterStemmer()
   def __call__(self, string):  
-    return [token for token in word_tokenize(string) if is_alpha(token)]
+    return [token for token in word_tokenize(string) if is_alpha(token) and len(token) > 3]
 
 
 # Checks that a word is ascii - stemmer expects ascii input
@@ -30,23 +28,6 @@ def is_ascii(word):
 def is_alpha(word):
   return all(ord(c) >= 97 and ord(c) <= 122 for c in word)
 
-
-# Removes all non-ascii characters
-
-
-def top_keywords(kmeans, vectorizer):
-  keywords = vectorizer.get_feature_names()
-
-  cluster_centers = kmeans.cluster_centers_
-
-  # for each cluster, generate the indices of the top words in descending order
-  top_keyword_idxs = cluster_centers.argsort()[:, ::-1]
-
-  for cluster_idx in range(len(top_keyword_idxs)):
-    cluster_keyword_idxs = top_keyword_idxs[cluster_idx]
-    print "Cluster {0}:".format(cluster_idx)
-    for idx in cluster_keyword_idxs[:10]:
-      print keywords[idx]
 
 
 def generate_features(documents, vectorizer):
@@ -70,7 +51,7 @@ def cluster(feature_vectors, kmeans):
 
 def compute(documents, n_clusters=8, max_features=300, max_df=0.8, min_df=2):
   # Feature vector generation
-  vectorizer = TfidfVectorizer(stop_words="english", tokenizer=AlphaTokenizer(), max_features=max_features, max_df=max_df, min_df=min_df)
+  vectorizer = TfidfVectorizer(stop_words="english", tokenizer=StemTokenizer(), max_features=max_features, max_df=max_df, min_df=min_df)
   feature_vectors = generate_features(documents, vectorizer)
 
   # K-means clustering
