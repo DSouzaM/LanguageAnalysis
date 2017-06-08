@@ -47,4 +47,18 @@ object Tokenizer {
       .map(getToken)
       .toIndexedSeq
   }
+
+  private def accepted(token: Token) = token.partsOfSpeech.intersect(Set(PartOfSpeech.NOUN)).nonEmpty
+
+  def count(string: String, partsOfSpeech: Set[PartOfSpeech] = Set(PartOfSpeech.NOUN)): Seq[(String, Int)] = {
+    split(string.toLowerCase)
+      .map(trim)
+      .filter(_.nonEmpty)
+      .groupBy(s => s)
+      .mapValues(_.size)
+      .toSeq
+      .filter { case (word: String, cnt: Int) =>
+        getToken(word).partsOfSpeech.intersect(partsOfSpeech).nonEmpty
+      }
+  }
 }

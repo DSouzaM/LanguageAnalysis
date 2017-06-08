@@ -1,12 +1,13 @@
 package com.dsouzam.language_analysis
 
+import java.nio.charset.Charset
 import java.sql.Timestamp
 import java.time.LocalDateTime
 
 import com.dsouzam.githubapi._
 import com.dsouzam.language_analysis.tables._
-import de.tudarmstadt.ukp.jwktl.api.PartOfSpeech
 import slick.jdbc.MySQLProfile.api._
+import com.vdurmont.emoji.EmojiParser
 
 import scala.concurrent.Await
 import scala.concurrent.ExecutionContext.Implicits._
@@ -16,10 +17,13 @@ import scala.concurrent.duration.Duration
 class Extractor(val client: APIClient, val database: Database) {
   val RANGE = 3
   val NUM_KEYWORDS = 10 // number of keywords to take and store
-  val ranker = new TextRank(RANGE, Set(PartOfSpeech.NOUN))
+  val CHARSET = Charset.forName("UTF-8")
+
   val repositoriesTable = TableQuery[Repositories]
   val languagesTable = TableQuery[Languages]
   val repositoryLanguagesTable = TableQuery[RepositoryLanguages]
+
+
 
   // queries GitHub and updates database with results
   def update(language: String, num: Int, fromScratch: Boolean = false) = {
@@ -33,8 +37,12 @@ class Extractor(val client: APIClient, val database: Database) {
       val languages = repos.flatMap(_.languages.keys)
       val languageInsert = languageInsertAction(languages) // update Languages table
       val repositoryInsert = repositoryInsertAction(repos) // update Repositories table
-
-      Await.result(languageInsert.zip(repositoryInsert), Duration.Inf) // complete first 2 transactions
+      try {
+        Await.result(languageInsert.zip(repositoryInsert), Duration.Inf) // complete first 2 transactions
+      } catch {
+        case e: Exception =>
+          e.printStackTrace()
+      }
 
       // once new languages have been committed to the Languages table, we can update the RepositoryLanguages table
       val repositoryLanguageInsert = repositoryLanguageInsertAction(repos, language)
@@ -63,14 +71,18 @@ class Extractor(val client: APIClient, val database: Database) {
 
   private def toTs(ldt: LocalDateTime) = Timestamp.valueOf(ldt)
   private def now = new Timestamp(System.currentTimeMillis())
-  private def keywords(repository: Repository) = {
-    val str = if (repository.readMe.nonEmpty) repository.readMe else repository.description
-    ranker.rank(str).take(NUM_KEYWORDS).map(_._1).mkString(",")
+  private def clean(str: String) = {
+    if (str == null) {
+      ""
+    } else {
+      val utf8String = CHARSET.decode(CHARSET.encode(str)).toString
+      EmojiParser.removeAllEmojis(utf8String)
+    }
   }
 
   def repositoryInsertAction(repositories: Seq[Repository]) = {
     database.run(DBIO.sequence(repositories.map{ r =>
-      repositoriesTable.insertOrUpdate((r.url, r.name, r.id, r.description, r.readMe, toTs(r.createdAt),
+      repositoriesTable.insertOrUpdate((r.url, r.name, r.id, clean(r.description), clean(r.readMe), toTs(r.createdAt),
       toTs(r.updatedAt), toTs(r.pushedAt), r.stars, r.watchers, r.hasPages, r.forks, r.defaultBranch, now))
     }))
   }
@@ -98,11 +110,25 @@ class Extractor(val client: APIClient, val database: Database) {
     result.toMap
   }
 
-  // counts how many records exist for a given language
+  // counts the number of repositorites with the given language as the primary language
   def getOffset(language: String): Int = {
-    0
-//    // TODO switch to languages mapping table
-//    val query = repositories.filter(_.language === language).length.result
-//    Await.result(database.run(query), Duration.Inf)
+    val primary = for {
+      (rl, l) <- repositoryLanguagesTable.filter(_.isPrimary) join languagesTable.filter(_.name === language) on (_.languageID === _.id)
+    } yield (rl.repositoryID, l.name)
+    val action = primary.length.result
+    Await.result(database.run(action), Duration.Inf)
+  }
+}
+
+
+object Extractor {
+  def main(args: Array[String]): Unit = {
+    val client = new APIClient(APIClient.getToken)
+
+    val db = Initializer.initialize
+
+    val extractor = new Extractor(client, db)
+
+    extractor.update("Python", 860)
   }
 }

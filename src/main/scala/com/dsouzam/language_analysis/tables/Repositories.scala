@@ -9,7 +9,7 @@ class Repositories(tag: Tag) extends Table[(String, String, Int, String, String,
   def name = column[String]("NAME")
   def id = column[Int]("ID", O.PrimaryKey)
   def description = column[String]("DESCRIPTION")
-  def readMe = column[String]("README")
+  def readMe = column[String]("README", O.SqlType("MEDIUMTEXT"))
 //  def language = column[String]("LANGUAGE")
 //  def otherLanguages = column[String]("OTHER_LANGUAGES")
   def createdAt = column[Timestamp]("CREATED_AT") // convert java.util.LocalDateTime to java.sql.Timestamp

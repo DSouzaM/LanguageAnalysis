@@ -4,3 +4,6 @@ target/*
 res/*
 lib/*
 !lib/github-api-wrapper*
+*.pyc
+*.csv
+*.txt
