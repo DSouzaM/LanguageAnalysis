@@ -1,24 +1,13 @@
 # LanguageAnalysis
 
-##### Required libraries (add the jars to `lib` folder and SBT does the rest):
-1. [GitHub API Wrapper][1] (included)
-2. [JWKTL][2], a library to interface with the Wiktionary dump ([download][3])
-3. [Oracle Berkeley DB Java Edition][4], a dependency for JWKTL ([download][5])
-4. [bzip2][6], a dependency for JWKTL ([download][7])
+I wanted to build something in Scala, but didn't know what people typically used Scala for. GitHub tags repositories by the primary language, so I had the idea to try and cluster programming languages based on keywords in repositories' README's - in Scala. This project could be divided into two core components: extraction and analysis. It's a bit of a mess, because I originally was working in Scala and decided to switch to Python when I started working on the analysis component.
 
+#### Extraction
+1. I created a [Scala wrapper](https://github.com/DSouzaM/github-api-wrapper) for the GitHub API.
+2. Using [Slick](http://slick.lightbend.com/), I wrote an incremental extraction system to fetch results from the API.
 
-##### Wiktionary dump setup:
-1. Download `enwiktionary-latest-pages-articles.xml.bz2` from the [Wiktionary dumps][8] (it's ~600MB compressed)
-2. Extract it to a `res` folder (it's ~6GB decompressed)
-3. Run `com.dsouzam.language_analysis.Initialize`
-  - This will parse the xml into a Berkeley DB at `res/wiktionary` so it can be queried by JWKTL. This step can take a while.
-4. (optional) Delete `enwiktionary-latest-pages-articles.xml` from the `res` folder
-
-[1]: https://github.com/DSouzaM/github-api-wrapper
-[2]: https://dkpro.github.io/dkpro-jwktl/documentation/getting-started/
-[3]: https://search.maven.org/#search|ga|1|a%3A%22dkpro-jwktl%22
-[4]: http://www.oracle.com/technetwork/database/database-technologies/berkeleydb/overview/index-093405.html
-[5]: http://www.oracle.com/technetwork/database/database-technologies/berkeleydb/downloads/index.html
-[6]: http://www.kohsuke.org/bzip2/
-[7]: http://www.kohsuke.org/bzip2/bzip2.jar
-[8]: https://dumps.wikimedia.org/enwiktionary/latest/
+#### Analysis
+1. I made a simple Tokenizer that used the [Java Wiktionary Library](https://dkpro.github.io/dkpro-jwktl/) to filter words by part of speech.
+2. I implemented the [TextRank](https://web.eecs.umich.edu/~mihalcea/papers/mihalcea.emnlp04.pdf) algorithm to extract keywords. This algorithm proved to be much slower than [tf-idf](https://en.wikipedia.org/wiki/Tf%E2%80%93idf), so I ended up not using it.
+3. At this point, I decided to switch to Python to take advantage of the libraries it already had. I used [nltk](http://www.nltk.org/) for tokenizing, and [scikit-learn](http://scikit-learn.org/) to vectorize repositories with tf-idf and then cluster using k-means. I played around with the parameters to improve the results from clustering. Below is a sample, listing the top ten stems for each cluster along with the number of repositories for each language in each cluster. Some clusters were a lot more defined than others (e.g. the last cluster is clearly about machine learning).
+![Clustering results on GitHub repository data](https://github.com/DSouzaM/LanguageAnalysis/blob/master/examples/github-example.PNG)
